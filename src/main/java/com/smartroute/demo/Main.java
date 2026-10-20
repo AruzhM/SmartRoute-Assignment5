@@ -1,6 +1,7 @@
 package com.smartroute.demo;
 import com.smartroute.model.*;
 import com.smartroute.planner.RoutePlanner;
+import com.smartroute.selector.StrategySelector;
 import com.smartroute.strategy.*;
 import java.util.List;
 
@@ -59,19 +60,43 @@ public class Main {
 
         displayResult(planner, routes, request);
 
-        // Runtime switch 1
         planner.setStrategy(new CheapestRouteStrategy());
         displayResult(planner, routes, request);
 
-        // Runtime switch 2
         planner.setStrategy(new EcoFriendlyRouteStrategy());
         displayResult(planner, routes, request);
 
-        // Runtime switch 3
         planner.setStrategy(new BalancedRouteStrategy(
                 0.40, 0.30, 0.10, 0.20
         ));
         displayResult(planner, routes, request);
+
+        System.out.println();
+        System.out.println("================================");
+        System.out.println("   AUTOMATIC STRATEGY SELECTION");
+        System.out.println("================================");
+
+        StrategySelector selector = new StrategySelector();
+
+        for (DeliveryPriority priority : DeliveryPriority.values()) {
+
+            DeliveryRequest automaticRequest = new DeliveryRequest(
+                    priority,
+                    6000,
+                    45,
+                    priority == DeliveryPriority.ECO
+            );
+
+            RouteStrategy selectedStrategy =
+                    selector.selectStrategy(automaticRequest);
+
+            planner.setStrategy(selectedStrategy);
+
+            System.out.println();
+            System.out.println("Delivery priority: " + priority);
+
+            displayResult(planner, routes, automaticRequest);
+        }
     }
 
     private static void displayResult(
