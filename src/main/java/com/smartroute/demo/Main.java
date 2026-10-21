@@ -1,9 +1,11 @@
 package com.smartroute.demo;
 import com.smartroute.model.*;
 import com.smartroute.planner.RoutePlanner;
+import com.smartroute.planner.RouteDecisionService;
 import com.smartroute.selector.StrategySelector;
 import com.smartroute.strategy.*;
 import java.util.List;
+import com.smartroute.planner.StrategyComparisonService;
 
 public class Main {
 
@@ -97,6 +99,70 @@ public class Main {
 
             displayResult(planner, routes, automaticRequest);
         }
+
+        System.out.println();
+        System.out.println("================================");
+        System.out.println("     SMART DECISION REPORT");
+        System.out.println("================================");
+
+        RouteDecisionService decisionService =
+                new RouteDecisionService();
+
+        DeliveryRequest reportRequest = new DeliveryRequest(
+                DeliveryPriority.URGENT,
+                4000,
+                35,
+                false
+        );
+
+        RouteDecision decision = decisionService.explain(
+                new FastestRouteStrategy(),
+                routes,
+                reportRequest
+        );
+
+        System.out.println("Selected route: "
+                + decision.selectedRoute().id());
+
+        System.out.println("Strategy: "
+                + decision.strategyName());
+
+        System.out.println();
+        System.out.println("WHY THIS ROUTE?");
+        System.out.println(decision.explanation());
+
+        System.out.println("Effective time: "
+                + decision.effectiveMinutes() + " min");
+
+        System.out.println("Total cost: "
+                + decision.totalCost() + " KZT");
+
+        System.out.println();
+        System.out.println("OTHER ROUTES:");
+
+        for (String reason : decision.rejectedRoutes()) {
+            System.out.println("- " + reason);
+        }
+
+        StrategyComparisonService comparisonService =
+                new StrategyComparisonService();
+
+        List<RouteStrategy> comparisonStrategies = List.of(
+                new FastestRouteStrategy(),
+                new CheapestRouteStrategy(),
+                new EcoFriendlyRouteStrategy(),
+                new BalancedRouteStrategy(0.40, 0.30, 0.10, 0.20)
+        );
+
+        List<RouteDecision> comparisonResults =
+                comparisonService.compare(
+                        comparisonStrategies,
+                        routes,
+                        request
+                );
+
+        comparisonService.printComparison(comparisonResults);
+
     }
 
     private static void displayResult(
@@ -109,15 +175,22 @@ public class Main {
         System.out.println();
         System.out.println("Strategy: "
                 + planner.getCurrentStrategyName());
-        System.out.println("Selected route: " + selected.id());
+
+        System.out.println("Selected route: "
+                + selected.id());
+
         System.out.println("Estimated time: "
                 + selected.estimatedMinutes() + " min");
+
         System.out.println("Base cost: "
                 + selected.cost() + " KZT");
+
         System.out.println("Distance: "
                 + selected.distanceKm() + " km");
+
         System.out.println("CO2 emissions: "
                 + selected.carbonEmission() + " kg");
+
         System.out.println("--------------------------------");
     }
 }
