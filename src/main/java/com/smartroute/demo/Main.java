@@ -186,12 +186,14 @@ public class Main {
             double weatherScore =
                     RouteConstraints.calculateEffectiveTime(selected)
                             + selected.weatherRisk() * severity * 2.0
-                            + selected.trafficLevel() * 1.5;
+                            + selected.trafficLevel() * 1.0;
 
             System.out.println("Selected route: " + selected.id());
             System.out.println("Weather risk: " + selected.weatherRisk());
             System.out.printf("Weather score: %.2f%n", weatherScore);
         }
+
+        FailureScenarioDemo.run(routes);
 
     }
 
