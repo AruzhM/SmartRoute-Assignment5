@@ -1,9 +1,7 @@
 package com.smartroute.planner;
-
 import com.smartroute.model.DeliveryRequest;
 import com.smartroute.model.Route;
 import com.smartroute.strategy.RouteStrategy;
-
 import java.util.List;
 import java.util.Objects;
 

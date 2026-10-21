@@ -1,38 +1,30 @@
 package com.smartroute.strategy;
+import com.smartroute.exception.NoSuitableRouteException;
 import com.smartroute.model.DeliveryRequest;
 import com.smartroute.model.Route;
+import com.smartroute.planner.RouteConstraints;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 public class FastestRouteStrategy implements RouteStrategy {
-
-    private int calculateEffectiveTime(Route route) {
-        return route.estimatedMinutes()
-                + route.trafficLevel() * 2;
-    }
 
     @Override
     public Route selectRoute(
             List<Route> routes,
             DeliveryRequest request
     ) {
-        Objects.requireNonNull(routes, "Routes cannot be null");
-        Objects.requireNonNull(request, "Request cannot be null");
+        List<Route> validRoutes =
+                RouteConstraints.filterValidRoutes(routes, request);
 
-        return routes.stream()
-                .filter(Route::available)
-                .filter(route ->
-                        route.cost() <= request.maxBudget())
-                .filter(route ->
-                        calculateEffectiveTime(route)
-                                <= request.maxDeliveryMinutes())
+        return validRoutes.stream()
                 .min(Comparator
-                        .comparingInt(this::calculateEffectiveTime)
-                        .thenComparingDouble(Route::cost)
+                        .comparingInt(RouteConstraints::calculateEffectiveTime)
+                        .thenComparingDouble(route ->
+                                RouteConstraints.calculateTotalCost(
+                                        route, request))
                         .thenComparing(Route::id))
                 .orElseThrow(() ->
-                        new IllegalStateException(
+                        new NoSuitableRouteException(
                                 "No suitable route found for Fastest Strategy"
                         ));
     }

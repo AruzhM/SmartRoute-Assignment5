@@ -1,9 +1,10 @@
 package com.smartroute.strategy;
+import com.smartroute.exception.NoSuitableRouteException;
 import com.smartroute.model.DeliveryRequest;
 import com.smartroute.model.Route;
+import com.smartroute.planner.RouteConstraints;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 public class BalancedRouteStrategy implements RouteStrategy {
 
@@ -21,19 +22,14 @@ public class BalancedRouteStrategy implements RouteStrategy {
         double sum = timeWeight + costWeight
                 + distanceWeight + emissionWeight;
 
-        if (!Double.isFinite(sum)
-                || Math.abs(sum - 1.0) > 0.000001) {
-            throw new IllegalArgumentException(
-                    "Strategy weights must sum to 1.0"
-            );
-        }
-
         if (!isValidWeight(timeWeight)
                 || !isValidWeight(costWeight)
                 || !isValidWeight(distanceWeight)
-                || !isValidWeight(emissionWeight)) {
+                || !isValidWeight(emissionWeight)
+                || Math.abs(sum - 1.0) > 0.000001) {
             throw new IllegalArgumentException(
-                    "Weights must be between 0 and 1"
+                    "Invalid weights: they must be between 0 and 1 "
+                            + "and sum to 1.0"
             );
         }
 
@@ -45,15 +41,11 @@ public class BalancedRouteStrategy implements RouteStrategy {
 
     private boolean isValidWeight(double weight) {
         return Double.isFinite(weight)
-                && weight >= 0 && weight <= 1;
+                && weight >= 0
+                && weight <= 1;
     }
 
-    private int effectiveTime(Route route) {
-        return route.estimatedMinutes()
-                + route.trafficLevel() * 2;
-    }
-
-    private double normalized(double value, double maximum) {
+    private double normalize(double value, double maximum) {
         return maximum == 0 ? 0 : value / maximum;
     }
 
@@ -62,30 +54,22 @@ public class BalancedRouteStrategy implements RouteStrategy {
             List<Route> routes,
             DeliveryRequest request
     ) {
-        Objects.requireNonNull(routes, "Routes cannot be null");
-        Objects.requireNonNull(request, "Request cannot be null");
-
-        List<Route> validRoutes = routes.stream()
-                .filter(Route::available)
-                .filter(route ->
-                        route.cost() <= request.maxBudget())
-                .filter(route ->
-                        effectiveTime(route)
-                                <= request.maxDeliveryMinutes())
-                .toList();
+        List<Route> validRoutes =
+                RouteConstraints.filterValidRoutes(routes, request);
 
         if (validRoutes.isEmpty()) {
-            throw new IllegalStateException(
+            throw new NoSuitableRouteException(
                     "No suitable route found for Balanced Strategy"
             );
         }
 
         double maxTime = validRoutes.stream()
-                .mapToDouble(this::effectiveTime)
+                .mapToDouble(RouteConstraints::calculateEffectiveTime)
                 .max().orElse(0);
 
         double maxCost = validRoutes.stream()
-                .mapToDouble(Route::cost)
+                .mapToDouble(route ->
+                        RouteConstraints.calculateTotalCost(route, request))
                 .max().orElse(0);
 
         double maxDistance = validRoutes.stream()
@@ -99,14 +83,18 @@ public class BalancedRouteStrategy implements RouteStrategy {
         return validRoutes.stream()
                 .min(Comparator
                         .<Route>comparingDouble(route ->
-                                normalized(effectiveTime(route), maxTime)
-                                        * timeWeight
-                                        + normalized(route.cost(), maxCost)
-                                        * costWeight
-                                        + normalized(route.distanceKm(), maxDistance)
-                                        * distanceWeight
-                                        + normalized(route.carbonEmission(), maxEmission)
-                                        * emissionWeight)
+                                normalize(
+                                        RouteConstraints.calculateEffectiveTime(route),
+                                        maxTime) * timeWeight
+                                        + normalize(
+                                        RouteConstraints.calculateTotalCost(route, request),
+                                        maxCost) * costWeight
+                                        + normalize(
+                                        route.distanceKm(),
+                                        maxDistance) * distanceWeight
+                                        + normalize(
+                                        route.carbonEmission(),
+                                        maxEmission) * emissionWeight)
                         .thenComparing(Route::id))
                 .orElseThrow();
     }
