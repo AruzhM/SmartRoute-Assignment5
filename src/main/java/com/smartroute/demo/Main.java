@@ -6,6 +6,7 @@ import com.smartroute.selector.StrategySelector;
 import com.smartroute.strategy.*;
 import java.util.List;
 import com.smartroute.planner.StrategyComparisonService;
+import com.smartroute.planner.RouteConstraints;
 
 public class Main {
 
@@ -151,8 +152,10 @@ public class Main {
                 new FastestRouteStrategy(),
                 new CheapestRouteStrategy(),
                 new EcoFriendlyRouteStrategy(),
-                new BalancedRouteStrategy(0.40, 0.30, 0.10, 0.20)
+                new BalancedRouteStrategy(0.40, 0.30, 0.10, 0.20),
+                new WeatherAwareRouteStrategy(7)
         );
+
 
         List<RouteDecision> comparisonResults =
                 comparisonService.compare(
@@ -163,7 +166,36 @@ public class Main {
 
         comparisonService.printComparison(comparisonResults);
 
+
+        System.out.println();
+        System.out.println("================================");
+        System.out.println("      WEATHER SIMULATION");
+        System.out.println("================================");
+
+        for (int severity : new int[]{0, 3, 7, 10}) {
+
+            planner.setStrategy(
+                    new WeatherAwareRouteStrategy(severity)
+            );
+
+            System.out.println();
+            System.out.println("Weather severity: " + severity + "/10");
+
+            Route selected = planner.plan(routes, request);
+
+            double weatherScore =
+                    RouteConstraints.calculateEffectiveTime(selected)
+                            + selected.weatherRisk() * severity * 2.0
+                            + selected.trafficLevel() * 1.5;
+
+            System.out.println("Selected route: " + selected.id());
+            System.out.println("Weather risk: " + selected.weatherRisk());
+            System.out.printf("Weather score: %.2f%n", weatherScore);
+        }
+
     }
+
+
 
     private static void displayResult(
             RoutePlanner planner,
