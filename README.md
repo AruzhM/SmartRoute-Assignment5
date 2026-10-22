@@ -271,3 +271,48 @@ The application demonstrates runtime strategy switching, automatic strategy sele
 **Assignment:** Assignment 5 — Strategy Pattern  
 **Language:** Java  
 **Build System:** Maven
+
+
+
+## Interactive Delivery Simulator
+
+SmartRoute includes an interactive console application that allows users to create delivery requests with custom conditions.
+
+Users can:
+- Select a delivery priority: URGENT, ECONOMY, ECO, or STANDARD.
+- Enter a maximum delivery budget.
+- Specify a delivery deadline.
+- Receive an automatically optimized route recommendation.
+- View effective delivery time, total cost, distance, and CO2 emissions.
+- Handle invalid inputs and unavailable delivery routes.
+- Repeat the simulation or exit the application.
+
+The simulator uses the existing StrategySelector, RoutePlanner, and RouteConstraints components without duplicating route optimization algorithms.
+
+### Example
+
+```text
+Choose delivery priority:
+1. URGENT
+2. ECONOMY
+3. ECO
+4. STANDARD
+0. EXIT
+
+Your choice: 1
+Enter budget (KZT): 5000
+Enter deadline (minutes): 40
+
+RECOMMENDED ROUTE
+Strategy: Fastest Route Strategy
+Route: R-02
+Effective time: 29 min
+Total cost: 3850.00 KZT
+```
+
+To run the simulator, execute:
+
+`com.smartroute.demo.InteractiveDeliverySimulator`
+
+from IntelliJ IDEA.
+
