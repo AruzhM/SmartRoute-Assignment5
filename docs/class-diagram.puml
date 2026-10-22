@@ -1,0 +1,127 @@
+@startuml
+title SmartRoute - UML Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+interface RouteStrategy {
+    +selectRoute(routes, request): Route
+    +getStrategyName(): String
+}
+
+class FastestRouteStrategy
+class CheapestRouteStrategy
+class EcoFriendlyRouteStrategy
+class BalancedRouteStrategy {
+    -timeWeight: double
+    -costWeight: double
+    -distanceWeight: double
+    -emissionWeight: double
+}
+class WeatherAwareRouteStrategy {
+    -weatherSeverity: int
+}
+
+class RoutePlanner {
+    -strategy: RouteStrategy
+    +setStrategy(strategy): void
+    +plan(routes, request): Route
+    +getCurrentStrategyName(): String
+}
+
+class StrategySelector {
+    -strategies: Map
+    +registerStrategy(priority, strategy): void
+    +selectStrategy(request): RouteStrategy
+}
+
+class RouteConstraints {
+    +calculateTotalCost(route, request): double
+    +calculateEffectiveTime(route): int
+    +isValid(route, request): boolean
+    +filterValidRoutes(routes, request): List
+}
+
+class RouteDecisionService {
+    +explain(strategy, routes, request): RouteDecision
+}
+
+class StrategyComparisonService {
+    +compare(strategies, routes, request): List
+    +printComparison(decisions): void
+}
+
+class Location <<record>> {
+    +name: String
+    +latitude: double
+    +longitude: double
+}
+
+class Route <<record>> {
+    +id: String
+    +origin: Location
+    +destination: Location
+    +distanceKm: double
+    +estimatedMinutes: int
+    +cost: double
+    +carbonEmission: double
+    +available: boolean
+    +trafficLevel: int
+    +weatherRisk: int
+}
+
+class DeliveryRequest <<record>> {
+    +priority: DeliveryPriority
+    +maxBudget: double
+    +maxDeliveryMinutes: int
+    +ecoPreferred: boolean
+}
+
+enum DeliveryPriority {
+    URGENT
+    ECONOMY
+    ECO
+    STANDARD
+}
+
+class RouteDecision <<record>> {
+    +selectedRoute: Route
+    +strategyName: String
+    +explanation: String
+    +totalCost: double
+    +effectiveMinutes: int
+    +rejectedRoutes: List
+}
+
+class NoSuitableRouteException
+
+RouteStrategy <|.. FastestRouteStrategy
+RouteStrategy <|.. CheapestRouteStrategy
+RouteStrategy <|.. EcoFriendlyRouteStrategy
+RouteStrategy <|.. BalancedRouteStrategy
+RouteStrategy <|.. WeatherAwareRouteStrategy
+
+RoutePlanner o--> RouteStrategy
+StrategySelector --> RouteStrategy
+StrategySelector --> DeliveryPriority
+RouteStrategy ..> Route
+RouteStrategy ..> DeliveryRequest
+
+Route --> Location
+DeliveryRequest --> DeliveryPriority
+
+RouteDecision --> Route
+RouteDecisionService --> RouteDecision
+RouteDecisionService ..> RouteStrategy
+StrategyComparisonService --> RouteDecisionService
+
+FastestRouteStrategy ..> RouteConstraints
+CheapestRouteStrategy ..> RouteConstraints
+EcoFriendlyRouteStrategy ..> RouteConstraints
+BalancedRouteStrategy ..> RouteConstraints
+WeatherAwareRouteStrategy ..> RouteConstraints
+
+NoSuitableRouteException --|> RuntimeException
+
+@enduml

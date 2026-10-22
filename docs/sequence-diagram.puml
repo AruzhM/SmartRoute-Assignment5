@@ -1,0 +1,50 @@
+@startuml
+title SmartRoute - UML Sequence Diagram
+
+autonumber
+
+actor Client
+participant "StrategySelector" as Selector
+participant "RoutePlanner" as Planner
+participant "FastestRouteStrategy" as Fastest
+participant "RouteConstraints" as Constraints
+participant "Route" as Route
+
+Client -> Selector: selectStrategy(urgentRequest)
+activate Selector
+
+Selector --> Client: FastestRouteStrategy
+deactivate Selector
+
+Client -> Planner: setStrategy(fastestStrategy)
+activate Planner
+Planner --> Client: strategy updated
+deactivate Planner
+
+Client -> Planner: plan(routes, urgentRequest)
+activate Planner
+
+Planner -> Fastest: selectRoute(routes, urgentRequest)
+activate Fastest
+
+Fastest -> Constraints: filterValidRoutes(routes, urgentRequest)
+activate Constraints
+
+Constraints -> Constraints: Check availability, budget, deadline
+Constraints --> Fastest: validRoutes
+deactivate Constraints
+
+Fastest -> Fastest: Find minimum effective time
+
+Fastest --> Planner: selectedRoute
+deactivate Fastest
+
+Planner --> Client: selectedRoute
+deactivate Planner
+
+Client -> Route: id(), estimatedMinutes(), cost()
+activate Route
+Route --> Client: Route details
+deactivate Route
+
+@enduml
